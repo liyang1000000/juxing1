@@ -23,7 +23,8 @@ var rewardSchema = new Schema({
 
 // the schema is useless so far
 // we need to create a model using it
-var Rewards = mongoose.model('Reward', rewardSchema);
+const rewardsDB = mongoose.connection.useDb('juxing1');
+var Rewards = rewardsDB.model('Reward', rewardSchema);
 
 // make this available to our users in our Node applications
 module.exports = Rewards;

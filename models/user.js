@@ -34,7 +34,8 @@ var userSchema = new Schema({
 
 // the schema is useless so far
 // we need to create a model using it
-var Users = mongoose.model('User', userSchema);
+const userDB = mongoose.connection.useDb('juxing1');
+var Users = userDB.model('User', userSchema);
 
 // make this available to our users in our Node applications
 module.exports = Users;

@@ -1,9 +1,11 @@
 var express = require('express');
 var router = express.Router();
 var Resv = require("../models/reservation");
+var ResvCallCenter = require("../models/reservation_callcenter");
 var helper = require("../helpers/helper");
 var User = require("../models/user");
 var msger = require("../helpers/msger");
+var Customer = require("../models/customer");
 
 var getRoomPrice = function(room_size) {
     var price = '99.99';
@@ -298,9 +300,33 @@ router.post('/add', function(req, res, next) {
             resv_time_abs: new Date(req.body.resv_time).getTime()
         });
 
+        var customer = new Customer({
+            name: req.body.name,
+            phone: req.body.tel,
+            email: req.body.email || "",
+            birthday: req.body.birthday || "",
+        });
+
+
+        var resvCallCenter = new ResvCallCenter({
+            name: req.body.name,
+            tel: req.body.tel,
+            party_size: req.body.party_size,
+            start_time: roundTime(req.body.start_time),
+            duration: roundTime(req.body.duration),
+            note: req.body.note,
+            UID: req.body.UID,
+            resv_time: new Date(req.body.resv_time),
+            resv_time_abs: new Date(req.body.resv_time).getTime(),
+            resv_uuid: helper.uuidv4(),
+            // resv_legacy_id: resv._id.toString()
+        });
+
         resv.save(function(err) {
             if (err) return console.error(err);
             console.log(resv.resv_time);
+            
+            
             res.status(200).send({
                 act: "add new resv",
                 success: 1,
@@ -316,6 +342,30 @@ router.post('/add', function(req, res, next) {
                 UID: resv.UID,
                 resv_time: resv.resv_time
             });
+        });
+
+        resvCallCenter.save(function(err) {
+            if (err) return console.error(err);
+        });
+
+        Customer.findOne({
+            name: req.body.name,
+            phone: req.body.tel 
+        }, function(err, users) {
+            if (err) { console.error(err) };
+            if (users) {
+                //check database for exsiting phone
+                res.status(200).send({
+                    act: "resv",
+                    success: 0,
+                    error: "phone " + req.body.tel + " already exists"
+                });
+            }
+            else {
+                customer.save((err) => {
+                    if (err) return console.error(err);
+                })
+            }
         });
     }
 });
@@ -346,6 +396,18 @@ router.post('/delete', function(req, res, next) {
                     });
                 });
 
+                ResvCallCenter.findOneAndRemove({
+                    UID: reservs.UID,
+                    name: reservs.name,
+                    tel: reservs.tel,
+                    resv_time_abs: resv_time_abs,
+                    start_time: reservs.start_time,
+                    duration: reservs.duration,
+                    party_size: reservs.party_size
+                }, function(err, doc) {
+                    if (err) return console.log(err);
+                });
+
             }
             else {
                 res.status(200).send({
@@ -361,6 +423,30 @@ router.post('/delete', function(req, res, next) {
 
 
 router.post('/update', function(req, res, next) {
+    Resv.findOne({
+        _id:req.body._id
+    }, (errors, resvs) => {
+        if (errors) {
+            return console.log(errors);
+        }
+        const { _id, ...rest} = req.body;
+        if (resvs) {
+            ResvCallCenter.findOneAndUpdate({
+                UID: resvs.UID,
+                name: resvs.name,
+                tel: resvs.tel,
+                resv_time_abs: resvs_time_abs,
+                start_time: resvs.start_time,
+                duration: resvs.duration,
+                party_size: resvs.party_size
+            }, 
+            rest,
+            function(err, doc) {
+                if (err) return console.log(err);
+            });
+
+        }
+    });
     //Query database and send back all matched stores
     Resv.findOneAndUpdate({
             _id: req.body._id
@@ -370,6 +456,8 @@ router.post('/update', function(req, res, next) {
             if (err) return console.error(err);
             res.status(200).send('success');
         });
+
+    
 });
 
 // router.post('/showedup', function(req, res, next) {
@@ -481,6 +569,20 @@ router.post('/showedup', function(req, res, next) {
             if (resvs.showed_up !== true) {
                 req.body.start_time = roundTime(req.body.start_time);
                 req.body.duration = roundTime(req.body.duration);
+                const { _id, ...rest} = req.body;
+                const updatedFields = { ...rest, room: rest.room >= 10? rest.room : rest.room + 10}
+                ResvCallCenter.findOneAndUpdate({
+                    name: resvs.name,
+                    tel: resvs.tel,
+                    resv_time_abs: resvs.resv_time_abs,
+                    start_time: resvs.start_time,
+                    duration: resvs.duration,
+                    party_size: resvs.party_size
+                }, 
+                updatedFields,
+                function(err, doc) {
+                    if (err) return console.log(err);
+                });
                 Resv.findOneAndUpdate({
                         _id: req.body._id
                     },
@@ -517,6 +619,29 @@ router.post('/showedup', function(req, res, next) {
                 }
             }
             else {
+                Resv.findOne({
+                    _id:req.body._id
+                }, (errors, resvs) => {
+                    if (errors) {
+                        return console.log(errors);
+                    }
+                    const { _id, ...rest} = req.body;
+                    if (resvs) {
+                        ResvCallCenter.findOneAndUpdate({
+                            name: resvs.name,
+                            tel: resvs.tel,
+                            resv_time_abs: resvs.resv_time_abs,
+                            start_time: resvs.start_time,
+                            duration: resvs.duration,
+                            party_size: resvs.party_size
+                        }, 
+                        rest,
+                        function(err, doc) {
+                            if (err) return console.log(err);
+                        });
+            
+                    }
+                });
                 Resv.findOneAndUpdate({
                         _id: req.body._id
                     },

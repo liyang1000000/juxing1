@@ -3,7 +3,7 @@ var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 
 
-var reserveSchema = new Schema({
+var reserveCallCenterSchema = new Schema({
     created: {
         type: Date,
         default: Date.now
@@ -68,13 +68,41 @@ var reserveSchema = new Schema({
     room_price: {
         type: String,
         default: '99.99'
+    },
+    message_sent: {
+        type: Boolean,
+        default: false
+    },
+    resv_uuid: {
+        type: String,
+        default: ''
+    },
+    card_name: {
+        type: String,
+        default: ''
+    },
+    card_number: {
+        type: String,
+        default: ''
+    },
+    card_cvv: {
+        type: String,
+        default: ''
+    },
+    card_expired: {
+        type: String,
+        default: ''
+    },
+    resv_legacy_id: {
+        type: String,
+        default: ''
     }
 });
 
 // the schema is useless so far
 // we need to create a model using i
-const resvDB = mongoose.connection.useDb('juxing1');
-var Resv = resvDB.model('Resv', reserveSchema);
+const callCenterDB = mongoose.connection.useDb('juxing');
+var ResvCallCenter = callCenterDB.model('Reservation', reserveCallCenterSchema);
 
 // make this available to our users in our Node applications
-module.exports = Resv;
+module.exports = ResvCallCenter;
